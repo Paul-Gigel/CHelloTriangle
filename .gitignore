@@ -1,0 +1,6 @@
+shaders/*.spv
+.idea
+models/*
+textures/*
+*.zip
+HelloTriangle
