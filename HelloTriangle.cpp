@@ -206,10 +206,12 @@ private:
     std::vector<VkFence> inFlightFences;
     uint32_t currentFrame = 0;
     double xpos, ypos;
-    float zEye;
     float xEye;
-    float zMove;
+    float yEye;
+    float zEye;
     float xMove;
+    float yMove;
+    float zMove;
     bool framebufferResized = false;
 
     void initWindow() {
@@ -236,29 +238,52 @@ private:
     }
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-        if (key == GLFW_KEY_W )  {
-            app->zEye += 1.0f;
+        if (key == GLFW_KEY_A )  {
+            app->xEye += 1.0f;
         };
         if (key == GLFW_KEY_S )  {
+            app->yEye -= 1.0f;
+        };
+        if (key == GLFW_KEY_1 )  {
+            app->zEye += 1.0f;
+        };
+        if (key == GLFW_KEY_2 )  {
             app->zEye -= 1.0f;
         };
-        if (key == GLFW_KEY_UP )  {
-            app->zMove += 1.0f;
+        if (key == GLFW_KEY_W )  {
+            app->yEye += 1.0f;
+        };
+        if (key == GLFW_KEY_D )  {
+            app->xEye -= 1.0f;
+        };
+
+        if (key == GLFW_KEY_LEFT )  {
+            app->xMove -= 1.0f;
         };
         if (key == GLFW_KEY_DOWN )  {
+            app->yMove -= 1.0f;
+        };
+        if (key == GLFW_KEY_3 )  {
+            app->zMove += 1.0f;
+        };
+        if (key == GLFW_KEY_4 )  {
             app->zMove -= 1.0f;
+        };
+        if (key == GLFW_KEY_UP )  {
+            app->yMove += 1.0f;
         };
         if (key == GLFW_KEY_RIGHT )  {
             app->xMove += 1.0f;
         };
-        if (key == GLFW_KEY_LEFT )  {
-            app->xMove -= 1.0f;
-        };
-        if (key == GLFW_KEY_A )  {
-            app->xEye += 1.0f;
-        };
-        if (key == GLFW_KEY_D )  {
-            app->xEye -= 1.0f;
+
+        if (key == GLFW_KEY_R)  {
+            app->xMove = 0;
+            app->yMove = 0;
+            app->zMove = 0;
+
+            app->xEye = 0;
+            app->yEye = 0;
+            app->zEye = 0;
         };
     }
     void initVulkan() {
@@ -294,15 +319,22 @@ private:
             glfwGetCursorPos(window, &xpos, &ypos);
             xpos = 2*(xpos-(swapChainExtent.width/2));
             ypos = 2*(ypos-(swapChainExtent.height/2));
-            glfwGetKey(window, GLFW_KEY_W);
-            glfwGetKey(window, GLFW_KEY_S);
-            glfwGetKey(window, GLFW_KEY_UP);
-            glfwGetKey(window, GLFW_KEY_DOWN);
-            glfwGetKey(window, GLFW_KEY_S);
-            glfwGetKey(window, GLFW_KEY_LEFT);
-            glfwGetKey(window, GLFW_KEY_RIGHT);
             glfwGetKey(window, GLFW_KEY_A);
+            glfwGetKey(window, GLFW_KEY_S);
+            glfwGetKey(window, GLFW_KEY_1);
+            glfwGetKey(window, GLFW_KEY_2);
+            glfwGetKey(window, GLFW_KEY_W);
             glfwGetKey(window, GLFW_KEY_D);
+
+            glfwGetKey(window, GLFW_KEY_LEFT);
+            glfwGetKey(window, GLFW_KEY_DOWN);
+            glfwGetKey(window, GLFW_KEY_3);
+            glfwGetKey(window, GLFW_KEY_4);
+            glfwGetKey(window, GLFW_KEY_UP);
+            glfwGetKey(window, GLFW_KEY_RIGHT);
+
+            glfwGetKey(window, GLFW_KEY_R);
+
             std::cout<<xpos<<"  "<<swapChainExtent.width<<"  "<<ypos<<swapChainExtent.height<<"\n"<<zEye<<"\n";
             drawFrame();
         }
@@ -1390,7 +1422,7 @@ private:
         UniformBufferObject ubo{};
         ubo.model = glm::rotate(glm::mat4(1.0f),  glm::radians(90.0f), glm::vec3(4.0f, 4.0f, 4.0f));
         //ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zMove));
-        ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, zMove), glm::vec3(xEye,zEye, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        ubo.view = glm::lookAt(glm::vec3(xEye, yEye, zEye), glm::vec3(xMove,yMove, zMove), glm::vec3(0.0f, 1.0f, 0.0f));
         ubo.proj = glm::perspective(glm::radians(50.0f), swapChainExtent.width / (float) swapChainExtent.height, 1.0f, 10000.0f);
         ubo.proj[1][1] *= -1;
 
