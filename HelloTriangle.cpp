@@ -32,8 +32,8 @@
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-const std::string MODEL_PATH = "models/engel1.obj";
-const std::string TEXTURE_PATH = "textures/engel1.png";
+const std::string MODEL_PATH = "models/the-morning.obj";
+const std::string TEXTURE_PATH = "textures/the-morning.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -231,8 +231,8 @@ private:
     }
     static void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-        app->xpos = (0.0f-xpos);
-        app->ypos = (0.0f-ypos);
+        app->xpos = (0.0f-xpos)/100;
+        app->ypos = (0.0f-ypos)/100;
     }
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
@@ -243,10 +243,10 @@ private:
             app->zEye -= 1.0f;
         };
         if (key == GLFW_KEY_UP )  {
-            app->zMove -= 1.0f;
+            app->zMove += 1.0f;
         };
         if (key == GLFW_KEY_DOWN )  {
-            app->zMove += 1.0f;
+            app->zMove -= 1.0f;
         };
         if (key == GLFW_KEY_RIGHT )  {
             app->xMove += 1.0f;
@@ -292,6 +292,8 @@ private:
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             glfwGetCursorPos(window, &xpos, &ypos);
+            xpos = 2*(xpos-(swapChainExtent.width/2));
+            ypos = 2*(ypos-(swapChainExtent.height/2));
             glfwGetKey(window, GLFW_KEY_W);
             glfwGetKey(window, GLFW_KEY_S);
             glfwGetKey(window, GLFW_KEY_UP);
@@ -301,7 +303,7 @@ private:
             glfwGetKey(window, GLFW_KEY_RIGHT);
             glfwGetKey(window, GLFW_KEY_A);
             glfwGetKey(window, GLFW_KEY_D);
-            std::cout<<xpos<<"  "<<ypos<<"\n"<<zEye<<"\n";
+            std::cout<<xpos<<"  "<<swapChainExtent.width<<"  "<<ypos<<swapChainExtent.height<<"\n"<<zEye<<"\n";
             drawFrame();
         }
 
@@ -1386,8 +1388,9 @@ private:
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f),  time * glm::radians(90.0f), glm::vec3(1.0f, 1.0f, 0.0f));
-        ubo.view = glm::lookAt(glm::vec3(xEye, 0.0f, zEye), glm::vec3(xMove,zMove , 0.0f), glm::vec3(xpos, ypos, 0.0f));
+        ubo.model = glm::rotate(glm::mat4(1.0f),  glm::radians(90.0f), glm::vec3(4.0f, 4.0f, 4.0f));
+        //ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zMove));
+        ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, zMove), glm::vec3(xEye,zEye, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         ubo.proj = glm::perspective(glm::radians(50.0f), swapChainExtent.width / (float) swapChainExtent.height, 1.0f, 10000.0f);
         ubo.proj[1][1] *= -1;
 
@@ -1409,7 +1412,7 @@ private:
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
-        x += 0.01f;
+        x -= 2.0f;
         //std::cout<<x<<std::endl;
         updateUniformBuffer(currentFrame);
         //std::cout<< x<<std::endl;
