@@ -32,8 +32,8 @@
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-const std::string MODEL_PATH = "models/the-morning.obj";
-const std::string TEXTURE_PATH = "textures/the-morning.jpg";
+const std::string MODEL_PATH = "models/church.obj";
+const std::string TEXTURE_PATH = "textures/church.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -188,6 +188,7 @@ private:
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
 
+    uint32_t mipLevels;
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
     VkImageView textureImageView;
@@ -206,6 +207,7 @@ private:
     std::vector<VkFence> inFlightFences;
     uint32_t currentFrame = 0;
     double xpos, ypos;
+    float cX, cY, cZ;
     float xEye;
     float yEye;
     float zEye;
@@ -233,47 +235,51 @@ private:
     }
     static void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-        app->xpos = (0.0f-xpos)/100;
-        app->ypos = (0.0f-ypos)/100;
     }
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
         if (key == GLFW_KEY_A )  {
-            app->xEye += 1.0f;
+            app->xEye -= 1.0f;
+            app->xMove -= 1.0f;
         };
         if (key == GLFW_KEY_S )  {
             app->yEye -= 1.0f;
+            app->yMove -= 1.0f;
         };
         if (key == GLFW_KEY_1 )  {
             app->zEye += 1.0f;
+            app->zMove += 1.0f;
         };
         if (key == GLFW_KEY_2 )  {
             app->zEye -= 1.0f;
+            app->zMove -= 1.0f;
         };
         if (key == GLFW_KEY_W )  {
             app->yEye += 1.0f;
+            app->yMove += 1.0f;
         };
         if (key == GLFW_KEY_D )  {
-            app->xEye -= 1.0f;
+            app->xEye += 1.0f;
+            app->xMove += 1.0f;
         };
 
         if (key == GLFW_KEY_LEFT )  {
-            app->xMove -= 1.0f;
+            app->xMove -= 0.1f;
         };
         if (key == GLFW_KEY_DOWN )  {
-            app->yMove -= 1.0f;
+            app->yMove -= 0.1f;
         };
         if (key == GLFW_KEY_3 )  {
-            app->zMove += 1.0f;
+            app->zMove += 0.1f;
         };
         if (key == GLFW_KEY_4 )  {
-            app->zMove -= 1.0f;
+            app->zMove -= 0.1f;
         };
         if (key == GLFW_KEY_UP )  {
-            app->yMove += 1.0f;
+            app->yMove += 0.1f;
         };
         if (key == GLFW_KEY_RIGHT )  {
-            app->xMove += 1.0f;
+            app->xMove += 0.1f;
         };
 
         if (key == GLFW_KEY_R)  {
@@ -319,6 +325,8 @@ private:
             glfwGetCursorPos(window, &xpos, &ypos);
             xpos = 2*(xpos-(swapChainExtent.width/2));
             ypos = 2*(ypos-(swapChainExtent.height/2));
+            cX = std::sqrt(std::max(swapChainExtent.width, swapChainExtent.height)*std::max(swapChainExtent.width, swapChainExtent.height)- xpos*xpos);
+            cZ = std::sqrt(std::max(swapChainExtent.width, swapChainExtent.height)*std::max(swapChainExtent.width, swapChainExtent.height)- cX*cX);
             glfwGetKey(window, GLFW_KEY_A);
             glfwGetKey(window, GLFW_KEY_S);
             glfwGetKey(window, GLFW_KEY_1);
@@ -335,7 +343,7 @@ private:
 
             glfwGetKey(window, GLFW_KEY_R);
 
-            std::cout<<xpos<<"  "<<swapChainExtent.width<<"  "<<ypos<<swapChainExtent.height<<"\n"<<zEye<<"\n";
+            std::cout<<cX<<"  "<<swapChainExtent.width<<"  "<<cZ<<"  "<<swapChainExtent.height<<"\n"<<zEye<<"\n";
             drawFrame();
         }
 
@@ -610,12 +618,12 @@ private:
         swapChainImageViews.resize(swapChainImages.size());
 
         for (size_t i = 0; i < swapChainImages.size(); i++) {
-            swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+            swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
         }
     }
 
 
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
@@ -623,7 +631,7 @@ private:
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask = aspectFlags;
         viewInfo.subresourceRange.baseMipLevel = 0;
-        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.levelCount = mipLevels;
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
 
@@ -884,15 +892,15 @@ private:
     void createDepthResources() {
         VkFormat depthFormat = findDepthFormat();
 
-        createImage(swapChainExtent.width, swapChainExtent.height,
+        createImage(swapChainExtent.width, swapChainExtent.height, 1,
                     depthFormat, VK_IMAGE_TILING_OPTIMAL,
                     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                     depthImage, depthImageMemory);
 
-        depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+        depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
         //explicit transition, for completnes and better understanding
-        transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+        transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
     }
 
     void createTextureImage()   {
@@ -902,6 +910,8 @@ private:
         if (!pixels)    {
             throw std::runtime_error("failed to load Texture Image");
         }
+
+        mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight))))+1;
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -913,43 +923,43 @@ private:
         vkUnmapMemory(device, stagingBufferMemory);
         stbi_image_free(pixels);
 
-        createImage(texWidth, texHeight,
+        createImage(texWidth, texHeight, mipLevels,
                     VK_FORMAT_R8G8B8A8_SRGB,VK_IMAGE_TILING_OPTIMAL,
                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                     textureImage, textureImageMemory);
 
         transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
-                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
         copyBufferToImage(stagingBuffer, textureImage,
                           static_cast<uint32_t>(texWidth),
                           static_cast<uint32_t>(texHeight));
         transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
-                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
     void createTextureImageView()   {
-        textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+        textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     }
 
     void createTextureSampler()    {
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
         VkSamplerCreateInfo samplerInfo{
-            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .magFilter = VK_FILTER_LINEAR,
-            .minFilter = VK_FILTER_LINEAR,
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .anisotropyEnable = VK_TRUE,
-            .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
-            .compareEnable = VK_FALSE,
-            .compareOp = VK_COMPARE_OP_ALWAYS,
-            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = VK_FALSE
+                .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+                .magFilter = VK_FILTER_LINEAR,
+                .minFilter = VK_FILTER_LINEAR,
+                .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                .anisotropyEnable = VK_TRUE,
+                .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+                .compareEnable = VK_FALSE,
+                .compareOp = VK_COMPARE_OP_ALWAYS,
+                .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+                .unnormalizedCoordinates = VK_FALSE
         };
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
@@ -1139,6 +1149,7 @@ private:
     }
 
     void createImage(uint32_t width, uint32_t height,
+                     uint32_t mipLevels,
                      VkFormat format, VkImageTiling tiling,
                      VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
                      VkImage &image, VkDeviceMemory &imageMemory)  {
@@ -1148,7 +1159,7 @@ private:
         imageInfo.extent.width = static_cast<uint32_t>(width);
         imageInfo.extent.height = static_cast<uint32_t>(height);
         imageInfo.extent.depth = 1;
-        imageInfo.mipLevels = 1;
+        imageInfo.mipLevels = mipLevels;
         imageInfo.arrayLayers = 1;
         imageInfo.format = format;
         imageInfo.tiling = tiling;
@@ -1177,7 +1188,7 @@ private:
         vkBindImageMemory(device, image, imageMemory, 0);
     };
 
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)    {
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)    {
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
         VkImageMemoryBarrier barrier{
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -1189,7 +1200,7 @@ private:
                 .subresourceRange{
                         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                         .baseMipLevel = 0,
-                        .levelCount = 1,
+                        .levelCount = mipLevels,
                         .baseArrayLayer = 0,
                         .layerCount = 1
                 }
@@ -1225,7 +1236,7 @@ private:
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         } else {
-                throw std::invalid_argument("unsupported layout transition!");
+            throw std::invalid_argument("unsupported layout transition!");
         }
 
         vkCmdPipelineBarrier(commandBuffer,
@@ -1242,21 +1253,21 @@ private:
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
         VkBufferImageCopy region{
-            .bufferOffset = 0,
-            .bufferRowLength = 0,
-            .bufferImageHeight = 0,
-            .imageSubresource{
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .mipLevel = 0,
-                .baseArrayLayer = 0,
-                .layerCount = 1
-            },
-            .imageOffset{0, 0, 0},
-            .imageExtent{
-                width,
-                height,
-                1
-            }
+                .bufferOffset = 0,
+                .bufferRowLength = 0,
+                .bufferImageHeight = 0,
+                .imageSubresource{
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .mipLevel = 0,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1
+                },
+                .imageOffset{0, 0, 0},
+                .imageExtent{
+                        width,
+                        height,
+                        1
+                }
         };
 
         vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
@@ -1420,9 +1431,11 @@ private:
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f),  glm::radians(90.0f), glm::vec3(4.0f, 4.0f, 4.0f));
+        //ubo.model = glm::rotate(glm::mat4(1.0f),  glm::radians(90.0f), glm::vec3(4.0f, 4.0f, 4.0f));
         //ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zMove));
-        ubo.view = glm::lookAt(glm::vec3(xEye, yEye, zEye), glm::vec3(xMove,yMove, zMove), glm::vec3(0.0f, 1.0f, 0.0f));
+        std::cout<<glm::length(glm::vec2((float)xpos,(float)ypos))<<std::endl;
+        ubo.model = glm::scale(glm::mat4(1), glm::vec3(100.0f,100.0f,100.0f));
+        ubo.view = glm::lookAt(glm::vec3(xEye, yEye, zEye), glm::vec3(xpos,ypos, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(50.0f), swapChainExtent.width / (float) swapChainExtent.height, 1.0f, 10000.0f);
         ubo.proj[1][1] *= -1;
 
@@ -1676,10 +1689,10 @@ private:
 
     VkFormat findDepthFormat()  {
         return findSupportedFormat({
-                VK_FORMAT_D32_SFLOAT,
-                VK_FORMAT_D32_SFLOAT_S8_UINT,
-                VK_FORMAT_D24_UNORM_S8_UINT
-            },VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+                                           VK_FORMAT_D32_SFLOAT,
+                                           VK_FORMAT_D32_SFLOAT_S8_UINT,
+                                           VK_FORMAT_D24_UNORM_S8_UINT
+                                   },VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     }
 
     bool checkValidationLayerSupport() {
