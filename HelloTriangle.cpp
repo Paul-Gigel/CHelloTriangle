@@ -32,8 +32,8 @@
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-const std::string MODEL_PATH = "models/church.obj";
-const std::string TEXTURE_PATH = "textures/church.jpg";
+const std::string MODEL_PATH = "models/the-morning.obj";
+const std::string TEXTURE_PATH = "textures/the-morning.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -176,6 +176,8 @@ private:
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
+
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
     uint32_t mipLevels;
     VkImage textureImage;
@@ -1045,7 +1047,7 @@ private:
         samplerInfo.compareEnable = VK_FALSE;
         samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerInfo.minLod = static_cast<float>(mipLevels/2);
+        samplerInfo.minLod = 0.0f; //static_cast<float>(mipLevels/2);
         samplerInfo.maxLod = static_cast<float>(mipLevels);
         samplerInfo.mipLodBias = 0.0f;
 
@@ -1590,6 +1592,21 @@ private:
         }
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    }
+
+    VkSampleCountFlagBits getMaxUsableSampleCount() {
+        VkPhysicalDeviceProperties physicalDeviceProperties;
+        vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+
+        VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+
+        if (counts & VK_SAMPLE_COUNT_64_BIT)   {return VK_SAMPLE_COUNT_64_BIT };
+        if (counts & VK_SAMPLE_COUNT_32_BIT)   {return VK_SAMPLE_COUNT_32_BIT };
+        if (counts & VK_SAMPLE_COUNT_16_BIT)   {return VK_SAMPLE_COUNT_16_BIT };
+        if (counts & VK_SAMPLE_COUNT_8_BIT)   {return VK_SAMPLE_COUNT_8_BIT };
+        if (counts & VK_SAMPLE_COUNT_4_BIT)   {return VK_SAMPLE_COUNT_4_BIT };
+        if (counts & VK_SAMPLE_COUNT_2_BIT)   {return VK_SAMPLE_COUNT_2_BIT };
+        return VK_SAMPLE_COUNT_1_BIT;
     }
 
     VkShaderModule createShaderModule(const std::vector<char>& code) {
