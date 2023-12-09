@@ -1,3 +1,4 @@
+//#define NDEBUG
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -29,11 +30,13 @@
 #include <set>
 #include <unordered_map>
 
+#include "wayland-client.h"
+
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-const std::string MODEL_PATH = "models/viking_room.obj";
-const std::string TEXTURE_PATH = "textures/viking_room.png";
+const std::string MODEL_PATH = "models/church.obj";
+const std::string TEXTURE_PATH = "textures/church.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -123,7 +126,8 @@ struct Vertex {
 };
 
 namespace std {
-    template<> struct hash<Vertex> {
+    template<>
+    struct hash<Vertex> {
         size_t operator()(Vertex const& vertex) const {
             return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
         }
@@ -1573,8 +1577,10 @@ private:
         //ubo.model = glm::rotate(glm::mat4(1.0f),  glm::radians(90.0f), glm::vec3(4.0f, 4.0f, 4.0f));
         //ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zMove));
         std::cout<<glm::length(glm::vec2((float)xpos,(float)ypos))<<std::endl;
-        ubo.model = glm::scale(glm::mat4(1), glm::vec3(100.0f,100.0f,100.0f));
-        ubo.view = glm::lookAt(glm::vec3(xEye, yEye, zEye), glm::vec3(xpos,ypos, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        //ubo.model = glm::scale(glm::mat4(1), glm::vec3(100.0f,100.0f,100.0f));
+        //glm::translate();
+        ubo.model =glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(xEye, yEye, zEye));
+        ubo.view = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f,0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(50.0f), swapChainExtent.width / (float) swapChainExtent.height, 1.0f, 10000.0f);
         ubo.proj[1][1] *= -1;
 
@@ -1877,6 +1883,13 @@ int main() {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-
+    const char * XDG_SESSION_TYPE = std::getenv("XDG_SESSION_TYPE");
+    if (XDG_SESSION_TYPE == nullptr) {
+        std::cerr << "XDG_SESSION_TYPE not fuond\n";
+    } else if (!strcmp(XDG_SESSION_TYPE, "wayland")) {
+        std::cout << "XDG_SESSION_TYPE  : " << XDG_SESSION_TYPE << "\n";
+    } else {
+        std::cerr << "unrecognised Protocoll\n";
+    };
     return EXIT_SUCCESS;
 }
